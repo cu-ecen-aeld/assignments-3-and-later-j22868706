@@ -14,11 +14,11 @@ all: $(EXEC)
 #Rule to build the executable from the source file.
 # We use the defined compiler and include necessary libraries (if any).
 $(EXEC): $(SRCS)
-$(CC) $(SRCS) -o $(EXEC) -Wall -Werror
+	$(CC) $(SRCS) -o $(EXEC) $(CFLAGS)
 
 # The clean target to remove built files.
 clean:
-rm -f $(EXEC) *.o
+	rm -f $(EXEC) *.o
 
 # Phony targets prevent conflicts with files of the same name.
 .PHONY: all clean
