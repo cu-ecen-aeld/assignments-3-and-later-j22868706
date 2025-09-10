@@ -7,17 +7,32 @@
  *   either in invocation of the system() call, or if a non-zero return
  *   value was returned by the command issued in @param cmd.
 */
+
 bool do_system(const char *cmd)
 {
-
 /*
  * TODO  add your code here
  *  Call the system() function with the command set in the cmd
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+   
+    int status = system(cmd);
 
-    return true;
+    if (status == -1){
+        // system() failed
+        perror("error : ");
+        return false;
+    }
+
+    // Check if child exited normally and with exit code 0
+    else if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        printf("Success \r\n");
+        return true;
+    }
+    // Command failed or exited abnormally
+    else
+    	return false;
 }
 
 /**
@@ -33,7 +48,6 @@ bool do_system(const char *cmd)
 *   fork, waitpid, or execv() command, or if a non-zero return value was returned
 *   by the command issued in @param arguments with the specified arguments.
 */
-
 bool do_exec(int count, ...)
 {
     va_list args;
@@ -47,7 +61,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
 
 /*
  * TODO:
@@ -58,10 +72,44 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
-
     va_end(args);
 
-    return true;
+    int status;
+    pid_t pid;
+
+    pid = fork();
+
+    if(pid == -1)// if fork fails
+    {
+        perror("fork error: ");
+        return false;
+    }
+    else if(pid == 0)// if fork succeeds
+    {
+        //this is the child process
+        printf("fork successfully created child process: %d\r\n", pid);
+
+        //execute the new program here
+        execv(command[0], command);
+        
+        //only run if execv fails
+        perror("execv error: ");
+        exit(EXIT_FAILURE);//exit with failure
+    }
+    
+    // Parent process
+    printf("Parent: waiting for child (PID %d)...\n", pid);
+    if(waitpid(pid, &status, 0) == -1){
+       perror("wait error: ");
+       return false;
+    }     
+
+    //check if child executed and exited successfully
+    if(WIFEXITED(status) && WEXITSTATUS(status) == 0){
+       	return true;// successfully exited
+    }else{
+       	return false;
+    }
 }
 
 /**
@@ -82,7 +130,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
 
 
 /*
@@ -92,8 +140,57 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
-
+    
     va_end(args);
 
-    return true;
+    int status;
+    pid_t pid;
+
+    pid = fork();
+
+    if(pid == -1)// if fork fails
+    {
+        perror("fork error: ");
+        return false;
+    }
+    else if(pid == 0)// if fork succeeds
+    {
+        //child process
+        printf("fork successfully created child process: %d\r\n", pid);
+
+	// open a file
+	int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+	if(fd < 0){
+	  perror("failed to open file: ");
+          exit(EXIT_FAILURE);//Graceful termination
+	}
+	//redirect stdout to the file
+	if (dup2(fd, STDOUT_FILENO) < 0){
+	   perror("dup2 error: ");
+	   close(fd);
+	   exit(EXIT_FAILURE);
+	}
+        close(fd);//close file descriptor
+        
+        //execute the new program here
+        execv(command[0], command);
+        
+        //only run if execv fails
+        perror("execv error: ");
+        exit(EXIT_FAILURE);//exit with failure
+    }
+    
+    // Parent process
+    printf("Parent: waiting for child (PID %d)...\n", pid);
+    if(waitpid(pid, &status, 0) == -1){
+       perror("wait error: ");
+       return false;
+    }
+
+    //check if child executed and exited successfully
+    if(WIFEXITED(status) && WEXITSTATUS(status) == 0){
+       	return true;// successfully exited
+    }else{
+       	return false;
+    }
 }

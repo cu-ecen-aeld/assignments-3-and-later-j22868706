@@ -11,8 +11,8 @@ WRITEDIR=/tmp/aeld-data
 username=$(cat conf/username.txt)
 
 # Clean build artifacts and build
-make clean
-make all
+# make clean
+# make all
 
 if [ $# -lt 3 ]
 then
